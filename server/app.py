@@ -3,7 +3,10 @@
 from flask import Flask, jsonify
 from flask_migrate import Migrate
 
-from models import db, Event, Session, Speaker, Bio
+try:
+    from models import db, Event, Session, Speaker, Bio
+except ModuleNotFoundError:
+    from server.models import db, Event, Session, Speaker, Bio
 
 
 app = Flask(__name__)
@@ -13,15 +16,15 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 app.json.compact = False
 
-migrate = Migrate(app, db)
 db.init_app(app)
+migrate = Migrate(app, db)
 
 
 # ---------------------------------------------------------
 # EVENT ENDPOINTS
 # ---------------------------------------------------------
 
-@app.route("/events")
+@app.route("/events", methods=["GET"])
 def get_events():
     events = Event.query.all()
 
@@ -35,12 +38,14 @@ def get_events():
     ]), 200
 
 
-@app.route("/events/<int:id>/sessions")
+@app.route("/events/<int:id>/sessions", methods=["GET"])
 def get_event_sessions(id):
     event = db.session.get(Event, id)
 
     if event is None:
-        return jsonify({"error": "Event not found"}), 404
+        return jsonify({
+            "error": "Event not found"
+        }), 404
 
     return jsonify([
         {
@@ -56,7 +61,7 @@ def get_event_sessions(id):
 # SPEAKER ENDPOINTS
 # ---------------------------------------------------------
 
-@app.route("/speakers")
+@app.route("/speakers", methods=["GET"])
 def get_speakers():
     speakers = Speaker.query.all()
 
@@ -69,18 +74,19 @@ def get_speakers():
     ]), 200
 
 
-@app.route("/speakers/<int:id>")
+@app.route("/speakers/<int:id>", methods=["GET"])
 def get_speaker(id):
     speaker = db.session.get(Speaker, id)
 
     if speaker is None:
-        return jsonify({"error": "Speaker not found"}), 404
+        return jsonify({
+            "error": "Speaker not found"
+        }), 404
 
-    bio_text = (
-        speaker.bio.bio_text
-        if speaker.bio is not None
-        else "No bio available"
-    )
+    if speaker.bio is not None:
+        bio_text = speaker.bio.bio_text
+    else:
+        bio_text = "No bio available"
 
     return jsonify({
         "id": speaker.id,
@@ -93,12 +99,14 @@ def get_speaker(id):
 # SESSION ENDPOINTS
 # ---------------------------------------------------------
 
-@app.route("/sessions/<int:id>/speakers")
+@app.route("/sessions/<int:id>/speakers", methods=["GET"])
 def get_session_speakers(id):
     session = db.session.get(Session, id)
 
     if session is None:
-        return jsonify({"error": "Session not found"}), 404
+        return jsonify({
+            "error": "Session not found"
+        }), 404
 
     return jsonify([
         {
@@ -116,3 +124,4 @@ def get_session_speakers(id):
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)
+    

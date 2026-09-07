@@ -2,14 +2,16 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 
 
-metadata = MetaData(naming_convention={
-    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-})
+metadata = MetaData(
+    naming_convention={
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
+    }
+)
 
 db = SQLAlchemy(metadata=metadata)
 
 
-# Many-to-Many association table between sessions and speakers
+# Many-to-many association table between Sessions and Speakers
 session_speakers = db.Table(
     "session_speakers",
     db.Column(
@@ -34,7 +36,8 @@ class Event(db.Model):
     name = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
 
-    # One Event has many Sessions
+    # One Event has many Sessions.
+    # Deleting an Event deletes its Sessions.
     sessions = db.relationship(
         "Session",
         back_populates="event",
@@ -50,7 +53,7 @@ class Session(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=False)
-    start_time = db.Column(db.DateTime)
+    start_time = db.Column(db.DateTime, nullable=False)
 
     # Foreign key to Event
     event_id = db.Column(
@@ -59,13 +62,13 @@ class Session(db.Model):
         nullable=False
     )
 
-    # Session belongs to Event
+    # Many Sessions belong to one Event.
     event = db.relationship(
         "Event",
         back_populates="sessions"
     )
 
-    # Many-to-Many relationship with Speakers
+    # Many-to-many relationship with Speakers.
     speakers = db.relationship(
         "Speaker",
         secondary=session_speakers,
@@ -82,7 +85,8 @@ class Speaker(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
 
-    # One Speaker has one Bio
+    # One Speaker has one Bio.
+    # Deleting a Speaker deletes the associated Bio.
     bio = db.relationship(
         "Bio",
         back_populates="speaker",
@@ -90,7 +94,7 @@ class Speaker(db.Model):
         cascade="all, delete-orphan"
     )
 
-    # Many-to-Many relationship with Sessions
+    # Many-to-many relationship with Sessions.
     sessions = db.relationship(
         "Session",
         secondary=session_speakers,
@@ -105,9 +109,9 @@ class Bio(db.Model):
     __tablename__ = "bios"
 
     id = db.Column(db.Integer, primary_key=True)
-    bio_text = db.Column(db.Text, nullable=False)
+    bio_text = db.Column(db.String, nullable=False)
 
-    # Foreign key to Speaker
+    # A Speaker can have only one Bio.
     speaker_id = db.Column(
         db.Integer,
         db.ForeignKey("speakers.id"),
@@ -115,7 +119,7 @@ class Bio(db.Model):
         unique=True
     )
 
-    # Bio belongs to Speaker
+    # Bio belongs to Speaker.
     speaker = db.relationship(
         "Speaker",
         back_populates="bio"
